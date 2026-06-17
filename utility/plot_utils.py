@@ -6,8 +6,6 @@ import pandas as pd
 from sklearn.metrics import roc_curve, auc
 
 def distribution_plot(numeric_df, data):
-    import matplotlib.pyplot as plt
-    import seaborn as sns
 
     numeric_cols = numeric_df.columns
     n = len(numeric_cols)
@@ -266,3 +264,171 @@ def plot_target_distribution(
     plt.show()
 
     return fig, axes
+
+def plot_table(
+    df,
+    title=None,
+    figsize=None,
+    font_size=10,
+    header_color="#2F5597",
+    header_text_color="white",
+    row_colors=("#F5F5F5", "white"),
+    edge_color="#D0D0D0",
+    precision=3,
+    save_path=None,
+):
+
+    df = df.copy()
+
+    for col in df.select_dtypes(include=np.number).columns:
+        df[col] = df[col].map(
+            lambda x: f"{x:.{precision}f}"
+            if isinstance(x, (float, np.floating))
+            else f"{x:,}"
+        )
+
+    n_rows, n_cols = df.shape
+
+    if figsize is None:
+        width = max(8, n_cols * 2)
+        height = max(1.5, 0.45 * n_rows + 1.2)
+        figsize = (width, height)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.axis("off")
+
+    table = ax.table(
+        cellText=df.values,
+        colLabels=df.columns,
+        cellLoc="center",
+        colLoc="center",
+        loc="center",
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(font_size)
+    table.scale(1.1, 1.4)
+
+    for (row, col), cell in table.get_celld().items():
+
+        cell.set_edgecolor(edge_color)
+
+        if row == 0:
+            cell.set_facecolor(header_color)
+            cell.set_text_props(
+                color=header_text_color,
+                weight="bold"
+            )
+            cell.set_height(0.08)
+
+        else:
+            cell.set_facecolor(
+                row_colors[(row - 1) % len(row_colors)]
+            )
+
+    for row in range(1, n_rows + 1):
+        table[(row, 0)].set_text_props(weight="bold")
+
+    if title:
+        plt.title(
+            title,
+            fontsize=14,
+            fontweight="bold",
+            pad=20
+        )
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(
+            save_path,
+            dpi=300,
+            bbox_inches="tight"
+        )
+
+    plt.show()
+
+    return fig, ax
+
+def plot_boxplots(
+    data,
+    columns=None,
+    figsize=None,
+    title="Feature Distributions and Outliers",
+    rotation=45,
+    sort_by_variance=False,
+    showfliers=True,
+    orient="v",
+    palette="Set2",
+    save_path=None,
+):
+    
+    if columns is None:
+        df = data.select_dtypes(include=np.number).copy()
+    else:
+        df = data[columns].copy()
+
+    if df.empty:
+        raise ValueError("No numeric columns available.")
+
+    if sort_by_variance:
+        order = df.var().sort_values(ascending=False).index
+        df = df[order]
+
+    if figsize is None:
+        if orient == "v":
+            figsize = (max(10, 1.2 * len(df.columns)), 6)
+        else:
+            figsize = (8, max(5, 0.5 * len(df.columns)))
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    sns.boxplot(
+        data=df,
+        orient=orient,
+        showfliers=showfliers,
+        linewidth=1.2,
+        palette=palette,
+        ax=ax,
+    )
+
+    ax.set_title(
+        title,
+        fontsize=15,
+        fontweight="bold",
+        pad=15
+    )
+
+    if orient == "v":
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            rotation=rotation,
+            ha="right"
+        )
+        ax.set_xlabel("")
+        ax.set_ylabel("Value")
+    else:
+        ax.set_ylabel("")
+        ax.set_xlabel("Value")
+
+    ax.grid(
+        axis="y" if orient == "v" else "x",
+        linestyle="--",
+        alpha=0.3
+    )
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(
+            save_path,
+            dpi=300,
+            bbox_inches="tight"
+        )
+
+    plt.show()
+
+    return fig, ax
