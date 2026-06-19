@@ -1,9 +1,20 @@
+# %% [code]
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_curve, auc
+
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_curve,
+    auc
+)
+
 
 def distribution_plot(numeric_df, data):
 
@@ -57,14 +68,124 @@ def corr_plot(corr_matrix):
     plt.tight_layout()
     plt.show()
 
-def confusion_plot(confusion_matrix, model_name):
-    plt.figure(figsize=(5, 4)) 
-    sns.heatmap(confusion_matrix, annot=True, fmt="d", cmap="Reds") 
-    plt.title(f"Confusion Matrix | {model_name}") 
-    plt.xlabel("Predicted")  
-    plt.ylabel("True") 
-    plt.tight_layout() 
-    plt.show() 
+def plot_confusion_matrix(
+    y_true = None,
+    y_pred = None,
+    cm = None,
+    class_names = None,
+    model_name = "Model",
+    figsize = (7, 6),
+    cmap = "Reds",
+    normalize = False,
+    show_metrics = True,
+    save_path = None,
+):
+    if cm is None:
+
+        if y_true is None or y_pred is None:
+            raise ValueError(
+                "Provide either (y_true, y_pred) or cm."
+            )
+
+        cm = confusion_matrix(y_true, y_pred)
+
+    cm = np.asarray(cm)
+
+    if class_names is None:
+        class_names = [f"Class {i}" for i in range(cm.shape[0])]
+
+    metrics_text = ""
+
+    if (
+        show_metrics
+        and y_true is not None
+        and y_pred is not None
+        and len(np.unique(y_true)) == 2
+    ):
+        acc = accuracy_score(y_true, y_pred)
+        prec = precision_score(y_true, y_pred)
+        rec = recall_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+
+        metrics_text = (
+            f"\nAccuracy={acc:.3f} | "
+            f"Precision={prec:.3f} | "
+            f"Recall={rec:.3f} | "
+            f"F1={f1:.3f}"
+        )
+
+    percentages = cm.astype(float) / cm.sum(axis=1, keepdims=True) * 100
+
+    annotations = np.empty_like(cm).astype(str)
+
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+
+            if normalize:
+                annotations[i, j] = (
+                    f"{percentages[i, j]:.1f}%"
+                )
+            else:
+                annotations[i, j] = (
+                    f"{cm[i, j]:,}\n"
+                    f"({percentages[i, j]:.1f}%)"
+                )
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    sns.heatmap(
+        cm if not normalize else percentages,
+        annot=annotations,
+        fmt = "",
+        cmap = cmap,
+        linewidths = 1,
+        linecolor = "white",
+        cbar = True,
+        square = True,
+        xticklabels = class_names,
+        yticklabels = class_names,
+        annot_kws={
+            "fontsize": 11,
+            "fontweight": "bold"
+        },
+        ax = ax
+    )
+
+    ax.set_title(
+        f"Confusion Matrix — {model_name}"
+        f"{metrics_text}",
+        fontsize = 14,
+        fontweight = "bold",
+        pad = 20
+    )
+
+    ax.set_xlabel(
+        "Predicted Label",
+        fontsize = 12,
+        fontweight = "bold"
+    )
+
+    ax.set_ylabel(
+        "True Label",
+        fontsize = 12,
+        fontweight = "bold"
+    )
+
+    plt.xticks(rotation=0)
+    plt.yticks(rotation=0)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(
+            save_path,
+            dpi = 300,
+            bbox_inches = "tight"
+        )
+
+    plt.show()
+
+    return fig, ax
 
 def plot_roc_curve(
     y_true,
@@ -352,15 +473,15 @@ def plot_table(
 
 def plot_boxplots(
     data,
-    columns=None,
-    figsize=None,
-    title="Feature Distributions and Outliers",
-    rotation=45,
-    sort_by_variance=False,
-    showfliers=True,
-    orient="v",
-    palette="Set2",
-    save_path=None,
+    columns = None,
+    figsize = None,
+    title = "Feature Distributions and Outliers",
+    rotation = 45,
+    sort_by_variance = False,
+    showfliers = True,
+    orient = "v",
+    palette = "Set2",
+    save_path = None,
 ):
     
     if columns is None:
