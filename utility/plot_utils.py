@@ -49,7 +49,7 @@ def distribution_plot(numeric_df, data):
     fig.tight_layout()
     plt.show()
     
-def corr_plot(corr_matrix):
+def corr_plot(corr_matrix, title):
     
     plt.figure(figsize=(12, 10))
     sns.heatmap(
@@ -64,7 +64,7 @@ def corr_plot(corr_matrix):
     )
     plt.xticks(rotation=0, ha="center")
     plt.yticks(rotation=0)
-    plt.title("Correlation Matrix Heatmap")
+    plt.title(title)
     plt.tight_layout()
     plt.show()
 
